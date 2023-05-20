@@ -6,7 +6,7 @@ app.use(express.json());
 app.use("/user", userRoute);
 app.use("/tweet", tweetRoute);
 app.get("/", (req, res) => {
-  res.send("hello world kl");
+  res.send("hello world");
 });
 
 app.listen(3000, () => {

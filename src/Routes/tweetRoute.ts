@@ -1,34 +1,81 @@
+import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 
 const router = Router();
-
+const pclient = new PrismaClient();
 //Tweet
 
 //tweet create
-router.post("/", (req, res) => {
-  res.status(501).json({ Error: "Not Implemented" });
-});
+router.post("/", async (req, res) => {
+  const { content, image, userId } = req.body;
+  console.log(content, userId);
+  try {
+    const result = await pclient.tweet.create({
+      data: {
+        content,
+        image,
+        userId,
+      },
+    });
 
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: "username or email already exists" });
+  }
+});
 //Tweet list
-router.get("/", (req, res) => {
-  res.status(501).json({ Error: "Not Implemented" });
+router.get("/", async (req, res) => {
+  try {
+    const allTweets = await pclient.tweet.findMany({
+      include: {
+        user: { select: { id: true, name: true, username: true, image: true } },
+      },
+    });
+    res.status(200).json(allTweets);
+  } catch (error) {
+    res.status(400).json({ Error: "something went wrong" });
+  }
 });
 
 //get tweet
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  res.status(501).json({ Error: `Not Implemented:${id}` });
+  const tweetResult = await pclient.tweet.findUnique({
+    where: { id: Number(id) },
+    include: { user: true },
+  });
+  if (!tweetResult) {
+    return res.status(404).json({ Error: "Oops no such tweet found!" });
+  }
+  res.status(200).json(tweetResult);
 });
 //update tweet
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   const { id } = req.params;
-  res.status(501).json({ Error: `Not Implemented:${id}` });
+  const { content, image } = req.body;
+  try {
+    const result = await pclient.tweet.update({
+      where: { id: Number(id) },
+      data: {
+        content,
+        image,
+      },
+    });
+    res.status(200).json({ Success: `${result}` });
+  } catch (error) {
+    res.status(400).json({ Error: `Tweet not updated` });
+  }
 });
 
 //delete tweet
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  res.status(501).json({ Error: `Not Implemented:${id}` });
+  try {
+    const result = await pclient.tweet.delete({ where: { id: Number(id) } });
+    res.sendStatus(200);
+  } catch (error) {
+    res.status(400).json({ Error: `user not found in our directory` });
+  }
 });
 
 export default router;
