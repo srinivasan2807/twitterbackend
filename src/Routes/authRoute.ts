@@ -1,11 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import { sendEmail } from "../services/emailService";
+
 const router = Router();
 const prisma = new PrismaClient();
 const EMAIL_EXPIRATION_IN_MINS = 10;
 const AUTHENTICATION_TOKEN_EXPIRATION_HOURS = 12;
-const JWT_SECRET = "SUPER_SECRET";
+const JWT_SECRET = process.env.JWT_SECRET || "SUPER SECRET";
+
 function generateEmailToken(): string {
   return Math.floor(10000000 + Math.random() * 90000000).toString();
 }
@@ -16,6 +19,7 @@ function generateAuthToken(token: number): string {
     noTimestamp: true,
   });
 }
+
 //login or create user
 //generate email token
 router.post("/login", async (req, res) => {
@@ -27,7 +31,7 @@ router.post("/login", async (req, res) => {
     new Date().getTime() + EMAIL_EXPIRATION_IN_MINS * 60 * 1000
   );
   try {
-    const createdToken = await prisma.token.create({
+    await prisma.token.create({
       data: {
         type: "EMAIL",
         emailToken,
@@ -40,11 +44,10 @@ router.post("/login", async (req, res) => {
         },
       },
     });
-    console.log(createdToken);
+    sendEmail(email, emailToken);
     res.sendStatus(200);
   } catch (error) {
     console.log(error);
-
     res.sendStatus(400).json({ Error: "Something bad happend" });
   }
 });
@@ -60,8 +63,6 @@ router.post("/authenticate", async (req, res) => {
       user: true,
     },
   });
-
-  console.log(dbEmailToken);
 
   if (!dbEmailToken || !dbEmailToken.valid) {
     return res.sendStatus(401);
@@ -100,7 +101,7 @@ router.post("/authenticate", async (req, res) => {
 
   //generate JWT token
   const authToken = generateAuthToken(apiToken.id);
-  
+
   res.status(200).json({ authToken });
 });
 export default router;

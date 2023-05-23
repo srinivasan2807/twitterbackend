@@ -23,6 +23,7 @@ router.post("/", async (req: userRequest, res) => {
         image,
         userId: user.id,
       },
+      include: { user: true },
     });
 
     res.status(200).json(result);
